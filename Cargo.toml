@@ -1,0 +1,17 @@
+[package]
+name = "bankster"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "bankster"
+
+[[bin]]
+name = "bankster"
+path = "bin/main.rs"
+
+[dependencies]
+clap = { version = "4.5.37", features = ["derive"] }
+csv = "1.3.1"
+serde = { version = "1.0.219", features = ["derive"] }
+tokio = { version = "1.44.2", features = ["sync", "macros", "net", "rt-multi-thread", "fs", "io-std", "io-util"] }
