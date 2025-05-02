@@ -157,3 +157,72 @@ fn test_chargeback() {
     assert_eq!(account_of!(a, 1).total, 0.0);
     assert_eq!(account_of!(a, 1).locked, true);
 }
+
+#[test]
+fn test_dispute_missing_transaction() {
+    let mut a = AccountDB::new();
+    let mut t = TransactionDB::new();
+    let mut tx = 0;
+
+    transact!(a, t, 1, tx, 42.0, TransactionType::Deposit);
+    assert_eq!(account_of!(a, 1).available, 42.0);
+    assert_eq!(account_of!(a, 1).total, 42.0);
+
+    transact!(a, t, 1, 2, TransactionType::Dispute);
+    assert_eq!(account_of!(a, 1).available, 42.0);
+    assert_eq!(account_of!(a, 1).held, 0.0);
+    assert_eq!(account_of!(a, 1).total, 42.0);
+}
+
+#[test]
+fn test_resolve_undisputed_transaction() {
+    let mut a = AccountDB::new();
+    let mut t = TransactionDB::new();
+    let mut tx = 0;
+
+    transact!(a, t, 1, tx, 42.0, TransactionType::Deposit);
+    assert_eq!(account_of!(a, 1).available, 42.0);
+    assert_eq!(account_of!(a, 1).total, 42.0);
+
+    transact!(a, t, 1, 1, TransactionType::Resolve);
+    assert_eq!(account_of!(a, 1).available, 42.0);
+    assert_eq!(account_of!(a, 1).held, 0.0);
+    assert_eq!(account_of!(a, 1).total, 42.0);
+}
+
+#[test]
+fn test_chargeback_undisputed_transaction() {
+    let mut a = AccountDB::new();
+    let mut t = TransactionDB::new();
+    let mut tx = 0;
+
+    transact!(a, t, 1, tx, 42.0, TransactionType::Deposit);
+    assert_eq!(account_of!(a, 1).available, 42.0);
+    assert_eq!(account_of!(a, 1).total, 42.0);
+
+    transact!(a, t, 1, 1, TransactionType::Chargeback);
+    assert_eq!(account_of!(a, 1).available, 42.0);
+    assert_eq!(account_of!(a, 1).held, 0.0);
+    assert_eq!(account_of!(a, 1).total, 42.0);
+    assert_eq!(account_of!(a, 1).locked, false);
+}
+
+// Are dispute, resolve and chargeback allowed to turn some balances negative?
+#[test]
+fn test_dispute_with_negative_available_balance() {
+    let mut a = AccountDB::new();
+    let mut t = TransactionDB::new();
+    let mut tx = 0;
+    transact!(a, t, 1, tx, 42.0, TransactionType::Deposit);
+    assert_eq!(account_of!(a, 1).available, 42.0);
+    assert_eq!(account_of!(a, 1).total, 42.0);
+
+    transact!(a, t, 1, tx, 1.0, TransactionType::Withdrawal);
+    assert_eq!(account_of!(a, 1).available, 41.0);
+    assert_eq!(account_of!(a, 1).total, 41.0);
+
+    transact!(a, t, 1, 1, TransactionType::Dispute);
+    assert_eq!(account_of!(a, 1).available, -1.0);
+    assert_eq!(account_of!(a, 1).held, 42.0);
+    assert_eq!(account_of!(a, 1).total, 41.0);
+}
